@@ -43,6 +43,8 @@ int famfs_mkfile(const char *filename, mode_t mode, uid_t uid, gid_t gid, size_t
 
 int famfs_cp_multi(int argc, char *argv[],
 		   mode_t mode, uid_t uid, gid_t gid, int recursive, int verbose);
+int famfs_cp_multi_289(int argc, char *argv[],
+			mode_t mode, uid_t uid, gid_t gid, int recursive, int verbose, size_t extra_size);
 int famfs_clone(const char *srcfile, const char *destfile, int verbose);
 
 int famfs_mkdir(const char *dirpath, mode_t mode, uid_t uid, gid_t gid, int verbose);

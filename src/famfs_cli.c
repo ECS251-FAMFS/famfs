@@ -505,6 +505,7 @@ famfs_cp_usage(int   argc,
 	       "    -u|--uid=<uid>   - Specify uid (default is current user's uid)\n"
 	       "    -g|--gid=<gid>   - Specify uid (default is current user's gid)\n"
 	       "    -v|verbose       - print debugging output while executing the command\n"
+		   "	-s|--size=<size>  - Specify the size of the file to create (default is 0)\n"
 	       "\n"
 	       "NOTE 1: 'famfs cp' will never overwrite an existing file, which is a side-effect\n"
 	       "        of the facts that famfs never does delete, truncate or allocate-on-write\n"
@@ -529,6 +530,8 @@ do_famfs_cli_cp(int argc, char *argv[])
 	mode_t current_umask;
 	int recursive = 0;
 	int rc;
+	size_t fsize = 0;
+	s64 mult;
 
 	/* XXX can't use any of the same strings as the global args! */
 	struct option cp_options[] = {
@@ -537,6 +540,7 @@ do_famfs_cli_cp(int argc, char *argv[])
 		{"uid",         required_argument,             0,  'u'},
 		{"gid",         required_argument,             0,  'g'},
 		{"verbose",     no_argument,          0,  'v'},
+		{"size",        required_argument,             0,  's'},
 		{0, 0, 0, 0}
 	};
 
@@ -544,8 +548,9 @@ do_famfs_cli_cp(int argc, char *argv[])
 	 * to return -1 when it sees something that is not recognized option
 	 * (e.g. the command that will mux us off to the command handlers
 	 */
-	while ((c = getopt_long(argc, argv, "+rm:u:g:vh?",
+	while ((c = getopt_long(argc, argv, "+rm:u:g:s:vh?",
 				cp_options, &optind)) != EOF) {
+		char *endptr;
 
 		switch (c) {
 		case 'v':
@@ -569,6 +574,12 @@ do_famfs_cli_cp(int argc, char *argv[])
 		case 'g':
 			gid = strtol(optarg, 0, 0);
 			break;
+		case 's':
+		fsize = strtoull(optarg, &endptr, 0);
+		mult = get_multiplier(endptr);
+		if (mult > 0)
+			fsize *= mult;
+		break;
 		}
 	}
 
@@ -585,7 +596,7 @@ do_famfs_cli_cp(int argc, char *argv[])
 	umask(current_umask);
 	mode &= ~(current_umask);
 
-	rc = famfs_cp_multi(argc - optind, &argv[optind], mode, uid, gid, recursive, verbose);
+	rc = famfs_cp_multi_289(argc - optind, &argv[optind], mode, uid, gid, recursive, verbose, fsize);
 	return rc;
 }
 

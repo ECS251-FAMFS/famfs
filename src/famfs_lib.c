@@ -3299,6 +3299,22 @@ famfs_mkdir_parents(
 	return rc;
 }
 
+int
+__famfs_cp(
+	struct famfs_locked_log  *lp,
+	const char               *srcfile,
+	const char               *destfile,
+	mode_t                    mode,
+	uid_t                     uid,
+	gid_t                     gid,
+	int                       verbose
+)
+{
+	size_t extra_size = 0;
+	__famfs_cp_289(
+		lp, srcfile, destfile, mode, uid, gid, verbose, extra_size);
+}
+
 /**
  * __famfs_cp()
  *
@@ -3318,6 +3334,7 @@ famfs_mkdir_parents(
  * @uid
  * @gid
  * @verbose
+ * @extra_size - extra size to allocate for the file (default 0)
  *
  * Return values:
  * 0  - Success
@@ -3326,14 +3343,15 @@ famfs_mkdir_parents(
  *      log full...
  */
 int
-__famfs_cp(
+__famfs_cp_289(
 	struct famfs_locked_log  *lp,
 	const char               *srcfile,
 	const char               *destfile,
 	mode_t                    mode,
 	uid_t                     uid,
 	gid_t                     gid,
-	int                       verbose)
+	int                       verbose,
+	size_t                   extra_size)
 {
 	size_t chunksize, remainder, offset;
 	int rc, srcfd, destfd;
@@ -3389,7 +3407,7 @@ __famfs_cp(
 	 * Need a way of holding the lock until the data is copied.
 	 */
 	destfd = __famfs_mkfile(lp, destfile, (mode == 0) ? srcstat.st_mode : mode,
-				uid, gid, srcstat.st_size, verbose);
+				uid, gid, (srcstat.st_size + extra_size), verbose);
 	if (destfd <= 0) {
 		fprintf(stderr, "%s: failed in __famfs_mkfile\n", __func__);
 		return destfd;
@@ -3440,6 +3458,20 @@ __famfs_cp(
 	return 0;
 }
 
+int
+famfs_cp(struct famfs_locked_log *lp,
+	 const char              *srcfile,
+	 const char              *destfile,
+	 mode_t                   mode,
+	 uid_t                    uid,
+	 gid_t                    gid,
+	 int                      verbose)
+{
+	size_t extra_size = 0;
+	famfs_cp_289(
+		lp, srcfile, destfile, mode, uid, gid, verbose, extra_size);
+}
+
 /**
  * famfs_cp()
  *
@@ -3450,15 +3482,17 @@ __famfs_cp(
  * @destfile - Nonexistent file, or existing directory. If destfile is a directory, this
  *             function fill append basename(srcfile) to destfile to get a nonexistent file path
  * @verbose
+ * @size - extra size to allocate for the file (default 0)
  */
 int
-famfs_cp(struct famfs_locked_log *lp,
+famfs_cp_289(struct famfs_locked_log *lp,
 	 const char              *srcfile,
 	 const char              *destfile,
 	 mode_t                   mode,
 	 uid_t                    uid,
 	 gid_t                    gid,
-	 int                      verbose)
+	 int                      verbose,
+	 size_t					  extra_size)
 {
 	char actual_destfile[PATH_MAX] = { 0 };
 	struct stat deststat;
@@ -3511,7 +3545,7 @@ famfs_cp(struct famfs_locked_log *lp,
 		strncpy(actual_destfile, destfile, PATH_MAX - 1);
 	}
 
-	return __famfs_cp(lp, srcfile, actual_destfile, mode, uid, gid, verbose);
+	return __famfs_cp_289(lp, srcfile, actual_destfile, mode, uid, gid, verbose, extra_size);
 }
 
 /**
@@ -3587,7 +3621,8 @@ int famfs_cp_dir(
 
 		switch (src_stat.st_mode & S_IFMT) {
 		case S_IFREG:
-			rc = famfs_cp(lp, srcfullpath, dest, mode, uid, gid, verbose);
+			size_t extra_size = 0;
+			rc = famfs_cp_289(lp, srcfullpath, dest, mode, uid, gid, verbose, extra_size);
 			if (rc < 0) {
 				err = rc;
 				goto bailout;
@@ -3621,6 +3656,20 @@ bailout:
 	return err;
 }
 
+int
+famfs_cp_multi(
+	int argc,
+	char *argv[],
+	mode_t mode,
+	uid_t uid,
+	gid_t gid,
+	int recursive,
+	int verbose)
+{
+	size_t extra_size = 0;
+	famfs_cp_multi_289(
+		argc, argv, mode, uid, gid, recursive, verbose, extra_size);
+}
 /**
  * famfs_cp_multi()
  *
@@ -3633,6 +3682,7 @@ bailout:
  * @gid
  * @recursive - Recursive copy if true
  * @verbose -
+ * @extra_size - Extra size to allocate for each file (default 0)
  *
  * Rules:
  * * non-recuraive
@@ -3653,14 +3703,15 @@ bailout:
  */
 
 int
-famfs_cp_multi(
+famfs_cp_multi_289(
 	int argc,
 	char *argv[],
 	mode_t mode,
 	uid_t uid,
 	gid_t gid,
 	int recursive,
-	int verbose)
+	int verbose,
+	size_t extra_size)
 {
 	struct famfs_locked_log ll = { 0 };
 	char *dest = argv[argc - 1];
@@ -3765,7 +3816,7 @@ famfs_cp_multi(
 		switch (src_stat.st_mode & S_IFMT) {
 		case S_IFREG:
 			/* Dest is a directory and files will be copied into it */
-			rc = famfs_cp(&ll, argv[i], dest, mode, uid, gid, verbose);
+			rc = famfs_cp_289(&ll, argv[i], dest, mode, uid, gid, verbose, extra_size);
 			if (rc < 0) { /* rc < 0 is errors we abort after */
 				fprintf(stderr, "%s: aborting copy due to error\n",
 					__func__);

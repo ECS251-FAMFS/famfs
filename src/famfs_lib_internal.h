@@ -51,6 +51,8 @@ int __open_relpath(const char *path, const char *relpath, int read_only, size_t 
 		   char *mpt_out, enum lock_opt lockopt, int no_fscheck);
 int __famfs_cp(struct famfs_locked_log  *lp, const char *srcfile, const char *destfile,
 	       mode_t mode, uid_t uid, gid_t gid, int verbose);
+int __famfs_cp_289(struct famfs_locked_log  *lp, const char *srcfile, const char *destfile,
+	       mode_t mode, uid_t uid, gid_t gid, int verbose, size_t extra_size);
 
 int
 __famfs_mkfile(struct famfs_locked_log *lp, const char *filename,
@@ -69,5 +71,7 @@ void famfs_print_role_string(int role);
 int famfs_validate_log_entry(const struct famfs_log_entry *le, u64 index);
 int famfs_cp(struct famfs_locked_log *lp, const char *srcfile, const char *destfile,
 		mode_t mode, uid_t uid, gid_t gid, int verbose);
+int famfs_cp_289(struct famfs_locked_log *lp, const char *srcfile, const char *destfile,
+	mode_t mode, uid_t uid, gid_t gid, int verbose, size_t extra_size);
 
 #endif /* _H_FAMFS_LIB_INTERNAL */
